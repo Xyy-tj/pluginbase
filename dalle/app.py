@@ -1,6 +1,6 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QPixmap, QIcon
 from Ui_dalle import Ui_MainWindow  # 假设你的UI文件名为dalle.ui
 from qt_material import apply_stylesheet
 import requests
@@ -21,6 +21,8 @@ class MyWindow(QMainWindow):
         # 初始化方法，这里可以写按钮绑定等的一些初始函数
         print('init ui')
         self.ui.pushButton.clicked.connect(self.push_button_clicked)
+        self.ui.progressBar.setValue(0)
+        self.setWindowIcon(QIcon('dalle/icon.png'))
         self.show()
         # load .ENV variables
         dotenv.load_dotenv()
@@ -36,13 +38,16 @@ class MyWindow(QMainWindow):
         model_name = "dall-e-3"
         image_size = "1024x1024"
         try:
-            
             self.ui.sub_system_info.append("当前prompts：{}, 正在生成图片，请耐心等待……".format(prompts))
+            QApplication.processEvents()
             response = requests.post(
                 os.getenv('BASE_URL'),
                 headers={"Authorization": os.getenv('API_KEY')},
                 json={"model": model_name, "size": image_size, "prompt": prompts, "n": 1},
             )
+            self.ui.progressBar.setValue(30)
+            self.ui.sub_system_info.append("正在下载图像，请耐心等待……")
+            QApplication.processEvents()
             response.raise_for_status()
             data = response.json()["data"]
             
@@ -60,6 +65,8 @@ class MyWindow(QMainWindow):
                 self.ui.sub_system_info.append("图片已下载至：{}".format(new_file_path))
                 pixmap = QPixmap(new_file_path)
                 self.ui.label.setPixmap(pixmap.scaled(self.ui.label.size()))
+            self.ui.progressBar.setValue(100)
+            QApplication.processEvents()
         except requests.exceptions.HTTPError as err:
             self.ui.sub_system_info.append("请求错误：{}".format(err.response.text))
             print(("请求错误：{}".format(err.response.text)))
