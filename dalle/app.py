@@ -1,6 +1,7 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
 from PyQt5.QtGui import QPixmap, QIcon
+from PyQt5 import QtCore
 from Ui_dalle import Ui_MainWindow  # 假设你的UI文件名为dalle.ui
 from qt_material import apply_stylesheet
 import requests
@@ -22,7 +23,7 @@ class MyWindow(QMainWindow):
         print('init ui')
         self.ui.pushButton.clicked.connect(self.push_button_clicked)
         self.ui.progressBar.setValue(0)
-        self.setWindowIcon(QIcon('dalle/icon.png'))
+        self.setWindowIcon(QIcon('dalle/favicon.ico'))
         self.show()
         # load .ENV variables
         dotenv.load_dotenv()
@@ -30,13 +31,15 @@ class MyWindow(QMainWindow):
     def push_button_clicked(self):
         # 按钮点击事件
         print('button clicked')
-        
+        self.ui.progressBar.setValue(0)
+        print(self.ui.comboBox_imgsize.currentText())
+        model_name = self.ui.comboBox_model.currentText()
+        image_size = self.ui.comboBox_imgsize.currentText()
+        self.ui.sub_system_info.append("正在创建请求，请耐心等待……")
         prompts = self.ui.textEdit.toPlainText()
         if len(prompts) == 0:
             self.ui.sub_system_info.append("提示词不能为空！")
             return
-        model_name = "dall-e-3"
-        image_size = "1024x1024"
         try:
             self.ui.sub_system_info.append("当前prompts：{}, 正在生成图片，请耐心等待……".format(prompts))
             QApplication.processEvents()
@@ -81,8 +84,28 @@ class MyWindow(QMainWindow):
         with open(file_path, "wb") as file:
             file.write(response.content)
         return file_path
+    
+    def bt_fileselect(self, param=''):
+        # 选择文件
+        self.ui.sub_system_info.clear()
+        if param == 'figs_dir':
+            default_dir = os.path.join(os.getcwd(), 'figs')
+            file_path, _ = QFileDialog.getOpenFileName(self, "选择文件", default_dir, "所有文件 (*)")
+            # 如果用户选择了文件，则更新
+            if file_path:
+                print(file_path)
+                self.ui.lineEdit.setText(file_path)
+                self.ui.sub_system_info.append("数据路径更新成功！")
+                return file_path
+            else:
+                print("未选择文件")
+                return
+        elif param == 'xx':
+            
+            return
 
 # 程序入口
 if __name__ == '__main__':
+    QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
     e = MyWindow()
     sys.exit(e.app.exec())
